@@ -1,0 +1,13 @@
+.env
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+demos/*/audio.wav
+demos/*/clips
+demos/*/final.mp4
+demos/*/narration.wav
+*.mp4
+*.mov

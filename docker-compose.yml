@@ -1,0 +1,14 @@
+services:
+  demo-mgr:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - whisper-cache:/root/.cache/huggingface
+    working_dir: /app
+    stdin_open: true
+    tty: true
+
+volumes:
+  whisper-cache:
