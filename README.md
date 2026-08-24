@@ -99,7 +99,7 @@ docker compose run --rm demo-mgr transcribe demos/login-flow --input demos/login
 Open a shell inside the container:
 
 ```bash
-docker compose run --rm demo-mgr bash
+docker compose run --rm --entrypoint bash demo-mgr
 python -m demo_mgr --help
 ```
 

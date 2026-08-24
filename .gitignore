@@ -14,3 +14,4 @@ demos/*/transcript.json
 demos/*/script.json
 demos/*/sync-report.json
 demos/*/rewrite-raw.txt
+demos

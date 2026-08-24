@@ -11,4 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY demo_mgr ./demo_mgr
 
+ENTRYPOINT ["python", "-m", "demo_mgr"]
 CMD ["--help"]
