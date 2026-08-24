@@ -85,7 +85,7 @@ docker compose run --rm demo-mgr mux demos/login-flow
 | Flag | Description |
 |------|-------------|
 | `--force` | Re-run a step even if outputs already exist |
-| `--input path/to/video.mov` | Use a specific source file |
+| `--input path/to/video.mov` | Use a specific source file (Default is source.mov or source.mp4) |
 | `--model medium` | Larger Whisper model (more accurate, slower) |
 | `--voice en-US-JennyNeural` | Pick a different Edge TTS voice |
 | `--max-atempo 1.20` | Max speed-up when TTS is longer than its time window |
@@ -95,7 +95,7 @@ Examples:
 ```bash
 docker compose run --rm demo-mgr run demos/login-flow --model medium
 docker compose run --rm demo-mgr voice demos/login-flow --voice en-US-JennyNeural --force
-docker compose run --rm demo-mgr transcribe demos/login-flow --input demos/login-flow/source.mp4
+docker compose run --rm demo-mgr transcribe demos/login-flow --input demos/login-flow/my-custom-video.mp4
 ```
 
 Open a shell inside the container:
@@ -135,7 +135,8 @@ Whisper only uses your recording to capture **what you said and when**. Groq imp
 
 ## Editing the script
 
-After `rewrite`, open `demos/<name>/script.json` and edit any `rewritten` field. Then regenerate voice and mux only:
+If you want to change the Grok output that will eventually will be converted into audio.
+You can open `demos/<name>/script.json` and edit any `rewritten` field. Then regenerate voice and mux only:
 
 ```bash
 docker compose run --rm demo-mgr voice demos/login-flow --force
