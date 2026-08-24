@@ -2,7 +2,9 @@
 
 Turn a rough screen recording into a polished demo video with professional narration.
 
-You record the demo yourself (speaking as you go). This tool:
+You record the demo yourself (speaking as you go). English is not required — speak in any language. Whisper turn that speech into English, and the finished video is always with English narration/audio.
+
+This tool:
 
 1. **Transcribes** your speech with local Whisper (timestamps included)
 2. **Rewrites** each chunk into clear English via Groq
