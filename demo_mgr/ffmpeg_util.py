@@ -19,7 +19,7 @@ def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
     return result
 
 
-def extract_audio(video_path: Path, output_wav: Path, sample_rate: int = 16000) -> None:
+def extract_audio(video_path: Path, output_wav: Path, sample_rate: int = 44100) -> None:
     output_wav.parent.mkdir(parents=True, exist_ok=True)
     _run(
         [
@@ -28,6 +28,9 @@ def extract_audio(video_path: Path, output_wav: Path, sample_rate: int = 16000) 
             "-i",
             str(video_path),
             "-vn",
+            "-map_metadata",
+            "-1",
+            "-bitexact",
             "-acodec",
             "pcm_s16le",
             "-ar",
