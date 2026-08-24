@@ -106,6 +106,9 @@ def convert_to_wav(input_path: Path, output_wav: Path) -> None:
 
 def mux_video_audio(video_path: Path, audio_path: Path, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Do not use -shortest. ReplayKit/QuickTime .mov files often have edit lists
+    # so video DTS ends ~10s before presentation PTS. -shortest then stops the
+    # AAC encoder at last DTS and truncates narration while video still plays.
     _run(
         [
             "ffmpeg",
@@ -124,7 +127,6 @@ def mux_video_audio(video_path: Path, audio_path: Path, output_path: Path) -> No
             "aac",
             "-b:a",
             "192k",
-            "-shortest",
             str(output_path),
         ]
     )
