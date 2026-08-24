@@ -152,6 +152,7 @@ For each chunk, TTS is placed at the original speech `start` time. If the new cl
 |---------|-----|
 | `No source video found` | Add `source.mov` or `source.mp4` to the demo folder |
 | `GROQ_API_KEY is not set` | Copy `.env.example` → `.env` and add your key |
+| Groq `model_not_found` | Set `GROQ_MODEL` in `.env` to a current Groq model (default is `openai/gpt-oss-120b`) |
 | First transcribe is slow | Whisper downloads ~500MB model into the `whisper-cache` Docker volume |
 | Edge TTS fails | Container needs outbound network |
 | HEVC `.mov` won't play somewhere | `final.mp4` uses stream copy; re-encode separately if a player lacks HEVC |
@@ -162,7 +163,7 @@ For each chunk, TTS is placed at the original speech `start` time. If the new cl
 - Python 3.11 CLI in Docker
 - ffmpeg / ffprobe
 - [faster-whisper](https://github.com/SYSTRAN/faster-whisper) — local transcription
-- [Groq](https://groq.com) — `llama-3.3-70b-versatile` rewrite
+- [Groq](https://groq.com) — `openai/gpt-oss-120b` rewrite
 - [edge-tts](https://github.com/rany2/edge-tts) — free neural TTS
 - pydub — overlay timed audio clips
 
