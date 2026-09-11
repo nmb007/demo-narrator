@@ -16,7 +16,7 @@ Your original mic audio is replaced. The video stream is copied (not re-encoded)
 
 ## Prerequisites
 
-- [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
+- Docker
 - Free [Groq API key](https://console.groq.com) (rewrite step)
 - Outbound internet (Groq + Edge TTS are cloud calls; Whisper runs locally in the container)
 
