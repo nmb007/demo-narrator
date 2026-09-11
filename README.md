@@ -1,4 +1,6 @@
-# Demo Manager
+# Demo Narrator
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Turn a rough screen recording into a polished demo video with professional narration.
 
@@ -40,7 +42,12 @@ demo-manager/
 
 ## Setup
 
-1. Clone or open this repo.
+1. Clone the repo:
+
+   ```bash
+   git clone https://github.com/nmb007/demo-narrator.git
+   cd demo-narrator
+   ```
 
 2. Create your env file:
 
@@ -170,6 +177,10 @@ For each chunk, TTS is placed at the original speech `start` time. If the new cl
 - [edge-tts](https://github.com/rany2/edge-tts) — free neural TTS
 - pydub — overlay timed audio clips
 
+## Contributing
+
+Contributions are welcome via pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup notes and the fork-and-PR workflow. Please open an [issue](https://github.com/nmb007/demo-narrator/issues) first if you want to discuss a larger change.
+
 ## License
 
-Use and modify freely for personal demo workflows.
+This project is licensed under the [MIT License](LICENSE). You may use, copy, modify, and distribute it freely, including commercially, provided you keep the copyright and license notice.
