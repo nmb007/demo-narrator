@@ -1,4 +1,4 @@
-# Demo Manager
+# Demo Narrator
 
 Turn a rough screen recording into a polished demo video with professional narration.
 
