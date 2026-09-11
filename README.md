@@ -1,5 +1,7 @@
 # Demo Narrator
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Turn a rough screen recording into a polished demo video with professional narration.
 
 You record the demo yourself (speaking as you go). English is not required — speak in any language. Whisper turn that speech into English, and the finished video is always with English narration/audio.
