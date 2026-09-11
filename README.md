@@ -1,7 +1,5 @@
 # Demo Narrator
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-
 Turn a rough screen recording into a polished demo video with professional narration.
 
 You record the demo yourself (speaking as you go). English is not required — speak in any language. Whisper turn that speech into English, and the finished video is always with English narration/audio.
@@ -18,7 +16,7 @@ Your original mic audio is replaced. The video stream is copied (not re-encoded)
 
 ## Prerequisites
 
-- [Docker Desktop for Mac](https://www.docker.com/products/docker-desktop/)
+- Docker
 - Free [Groq API key](https://console.groq.com) (rewrite step)
 - Outbound internet (Groq + Edge TTS are cloud calls; Whisper runs locally in the container)
 
