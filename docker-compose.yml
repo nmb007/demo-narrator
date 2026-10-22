@@ -1,6 +1,8 @@
 services:
   demo-mgr:
     build: .
+    environment:
+      PYTHONUNBUFFERED: "1"
     env_file:
       - .env
     volumes:

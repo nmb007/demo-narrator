@@ -7,15 +7,69 @@ import json
 import os
 from pathlib import Path
 
+import aiohttp
 import edge_tts
+from edge_tts.exceptions import NoAudioReceived, UnexpectedResponse, UnknownResponse, WebSocketError
 
 from demo_mgr.align import align_narration
 from demo_mgr.paths import DemoPaths, demo_paths, resolve_demo_dir
 
+# Microsoft drops a burst of parallel TTS sockets and sometimes closes one
+# socket without audio. Speak one chunk at a time and retry those drops.
+_MAX_ATTEMPTS = 4
+_RETRY_BASE_SECONDS = 1.5
+_GAP_SECONDS = 0.5
+_RETRYABLE = (
+    NoAudioReceived,
+    UnexpectedResponse,
+    UnknownResponse,
+    WebSocketError,
+    aiohttp.ClientError,
+    TimeoutError,
+    ConnectionError,
+    OSError,
+)
+
+
+def _remove_empty_clip(output_path: Path) -> None:
+    if output_path.exists() and output_path.stat().st_size == 0:
+        output_path.unlink()
+
 
 async def _synthesize_clip(text: str, voice: str, output_path: Path) -> None:
-    communicate = edge_tts.Communicate(text, voice)
-    await communicate.save(str(output_path))
+    last_error: Exception | None = None
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        try:
+            communicate = edge_tts.Communicate(text, voice)
+            await communicate.save(str(output_path))
+            if output_path.stat().st_size > 0:
+                return
+            last_error = NoAudioReceived("No audio was received.")
+        except _RETRYABLE as exc:
+            last_error = exc
+        _remove_empty_clip(output_path)
+        if attempt == _MAX_ATTEMPTS:
+            break
+        delay = _RETRY_BASE_SECONDS * attempt
+        print(
+            f"  {output_path.name}: no audio (attempt {attempt}/{_MAX_ATTEMPTS}), "
+            f"retrying in {delay:.1f}s"
+        )
+        await asyncio.sleep(delay)
+    raise NoAudioReceived(
+        f"No audio was received for {output_path.name} after {_MAX_ATTEMPTS} attempts."
+    ) from last_error
+
+
+async def _synthesize_all(chunks: list[dict], voice: str, clips_dir: Path) -> None:
+    total = len(chunks)
+    for index, chunk in enumerate(chunks, start=1):
+        clip_path = clips_dir / f"{chunk['id']}.mp3"
+        text = str(chunk["rewritten"]).strip()
+        print(f"  [{index}/{total}] {chunk['id']}")
+        await _synthesize_clip(text, voice, clip_path)
+        if index < total:
+            await asyncio.sleep(_GAP_SECONDS)
 
 
 def generate_voice(
@@ -51,15 +105,7 @@ def generate_voice(
     paths.clips_dir.mkdir(parents=True, exist_ok=True)
     print(f"Generating TTS for {len(chunks)} chunks with voice '{selected_voice}'...")
 
-    async def _run_all() -> None:
-        tasks = []
-        for chunk in chunks:
-            clip_path = paths.clips_dir / f"{chunk['id']}.mp3"
-            text = str(chunk["rewritten"]).strip()
-            tasks.append(_synthesize_clip(text, selected_voice, clip_path))
-        await asyncio.gather(*tasks)
-
-    asyncio.run(_run_all())
+    asyncio.run(_synthesize_all(chunks, selected_voice, paths.clips_dir))
 
     script["voice"] = selected_voice
     paths.script.write_text(json.dumps(script, indent=2), encoding="utf-8")
