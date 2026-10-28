@@ -145,6 +145,9 @@ def create_video_and_run(
             status=RunStatus.QUEUED,
         )
         session.add(video)
+        # Flush video first: without a Relationship(), the unit of work may
+        # INSERT narration_run before video and trip the FK constraint.
+        session.flush()
         session.add(run)
         session.commit()
         session.refresh(run)

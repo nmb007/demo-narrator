@@ -18,6 +18,8 @@ dependencies = [
     "asyncer",
     "obstore",
     "faster-whisper",
+    # faster-whisper 1.2.1 still passes metadata_errors= to av.open(); removed in PyAV 19.
+    "av>=11,<19",
     "openai",
     "edge-tts",
     "pydub",

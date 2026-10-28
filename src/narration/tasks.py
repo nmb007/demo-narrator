@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
     max_retries=0,
 )
 def run_narration(run_id: str) -> None:
+    # Celery logs Task name[<celery-task-id>]; that id is not this run_id.
+    logger.info("Starting narration pipeline for run_id=%s", run_id)
     try:
         narration_service.run_steps(UUID(run_id))
     except (
