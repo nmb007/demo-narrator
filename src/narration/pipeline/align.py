@@ -8,8 +8,8 @@ from pathlib import Path
 
 from pydub import AudioSegment
 
-from demo_mgr.ffmpeg_util import apply_atempo, convert_to_wav, probe_duration
-from demo_mgr.paths import DemoPaths
+from src.narration.pipeline.ffmpeg_util import apply_atempo, convert_to_wav, probe_duration
+from src.narration.pipeline.paths import WorkPaths
 
 
 def _chunk_window(chunks: list[dict], index: int, video_duration: float, gap_ms: int = 50) -> float:
@@ -20,7 +20,7 @@ def _chunk_window(chunks: list[dict], index: int, video_duration: float, gap_ms:
     return max(0.05, video_duration - start)
 
 
-def align_narration(paths: DemoPaths, *, max_atempo: float = 1.20) -> dict:
+def align_narration(paths: WorkPaths, *, max_atempo: float = 1.20) -> dict:
     script = json.loads(paths.script.read_text(encoding="utf-8"))
     chunks = script.get("chunks", [])
     video_duration = float(script.get("video_duration") or probe_duration(paths.source))
@@ -30,7 +30,7 @@ def align_narration(paths: DemoPaths, *, max_atempo: float = 1.20) -> dict:
 
     report_rows: list[dict] = []
 
-    with tempfile.TemporaryDirectory(prefix="demo-mgr-align-") as tmp_dir:
+    with tempfile.TemporaryDirectory(prefix="narration-align-") as tmp_dir:
         tmp = Path(tmp_dir)
         for index, chunk in enumerate(chunks):
             chunk_id = chunk["id"]
