@@ -1,16 +1,91 @@
 services:
-  demo-mgr:
-    build: .
+  db:
+    image: postgres:17
     environment:
-      PYTHONUNBUFFERED: "1"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: narrator
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d narrator"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      target: runtime
+    command: >
+      sh -c "alembic upgrade head &&
+             fastapi run --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
     env_file:
       - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
     volumes:
-      - .:/app
+      - ./src:/app/src
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini
+      - ./storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      target: runtime
+    command: >
+      watchfiles --filter python
+      "celery -A src.worker.celery_app worker --concurrency=1 --loglevel=INFO"
+      ./src
+    env_file:
+      - .env
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./src:/app/src
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini
+      - ./storage:/app/storage
       - whisper-cache:/root/.cache/huggingface
-    working_dir: /app
-    stdin_open: true
-    tty: true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  test:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini
 
 volumes:
+  pgdata:
   whisper-cache:
