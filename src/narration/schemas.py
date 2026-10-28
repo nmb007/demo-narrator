@@ -13,7 +13,6 @@ _SAMPLE_STEPS = ["transcribe", "rewrite", "voice", "mux"]
 
 
 class RetryRequest(BaseModel):
-    video_id: UUID
     steps: list[NarrationStep] | None = None
     model: str | None = None
     voice: str | None = None

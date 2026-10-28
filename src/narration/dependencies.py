@@ -8,7 +8,13 @@ from fastapi import Depends, HTTPException, status
 
 from src.auth.dependencies import CurrentUserDep
 from src.narration import service as narration_service
-from src.narration.exceptions import RunNotFound, VideoNotFound, VideoNotOwned
+from src.narration.exceptions import (
+    OutputNotReady,
+    RunInProgress,
+    RunNotFound,
+    VideoNotFound,
+    VideoNotOwned,
+)
 from src.narration.models import NarrationRun, Video
 from src.narration.schemas import RetryRequest
 
@@ -35,13 +41,6 @@ async def valid_owned_video(
     return await require_owned_video(video_id, current_user.id)
 
 
-async def valid_owned_video_from_retry(
-    payload: RetryRequest,
-    current_user: CurrentUserDep,
-) -> Video:
-    return await require_owned_video(payload.video_id, current_user.id)
-
-
 async def valid_owned_run(
     run_id: UUID,
     current_user: CurrentUserDep,
@@ -61,5 +60,47 @@ async def valid_owned_run(
 
 
 OwnedVideoDep = Annotated[Video, Depends(valid_owned_video)]
-RetryOwnedVideoDep = Annotated[Video, Depends(valid_owned_video_from_retry)]
 OwnedRunDep = Annotated[NarrationRun, Depends(valid_owned_run)]
+
+
+async def valid_downloadable_run(video: OwnedVideoDep) -> NarrationRun:
+    try:
+        return await asyncify(narration_service.latest_downloadable_run)(video.id)
+    except VideoNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video not found",
+        ) from exc
+    except OutputNotReady as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No narrated output is ready yet",
+        ) from exc
+
+
+async def create_owned_retry_run(
+    video: OwnedVideoDep,
+    payload: RetryRequest,
+) -> NarrationRun:
+    try:
+        return await asyncify(narration_service.create_retry_run)(
+            video_id=video.id,
+            steps=payload.steps,
+            model=payload.model,
+            voice=payload.voice,
+            max_atempo=payload.max_atempo,
+        )
+    except VideoNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Video not found",
+        ) from exc
+    except RunInProgress as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A run is already queued or running for this video",
+        ) from exc
+
+
+DownloadableRunDep = Annotated[NarrationRun, Depends(valid_downloadable_run)]
+RetryRunDep = Annotated[NarrationRun, Depends(create_owned_retry_run)]

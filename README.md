@@ -82,10 +82,10 @@ curl -s http://localhost:8000/v1/runs/$RUN_ID \
 ### 5. Retry steps
 
 ```bash
-curl -s -X POST http://localhost:8000/v1/retry \
+curl -s -X POST http://localhost:8000/v1/videos/$VIDEO_ID/retry \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d "{\"video_id\":\"$VIDEO_ID\",\"steps\":[\"voice\",\"mux\"],\"voice\":\"en-US-JennyNeural\"}"
+  -d '{"steps":["voice","mux"],"voice":"en-US-JennyNeural"}'
 ```
 
 Omit `steps` to re-run the full pipeline. Omitting `model` / `voice` / `max_atempo` reuses the previous run’s options.

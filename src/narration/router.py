@@ -16,15 +16,15 @@ from src.narration import service as narration_service
 from src.narration import utils as key_utils
 from src.narration.config import narration_settings
 from src.narration.constants import NarrationStep, RunStatus
-from src.narration.dependencies import OwnedRunDep, OwnedVideoDep, RetryOwnedVideoDep
-from src.narration.exceptions import (
-    OutputNotReady,
-    RunInProgress,
-    UnsupportedMediaType,
-    VideoNotFound,
+from src.narration.dependencies import (
+    DownloadableRunDep,
+    OwnedRunDep,
+    OwnedVideoDep,
+    RetryRunDep,
 )
+from src.narration.exceptions import UnsupportedMediaType
 from src.narration.pipeline.ffmpeg_util import FFmpegError, probe_duration
-from src.narration.schemas import RetryRequest, RunResponse, RunStatusResponse
+from src.narration.schemas import RunResponse, RunStatusResponse
 from src.schemas import NOT_AUTHENTICATED_RESPONSE, error_response, success_response
 from src.storage import service as storage
 from src.storage.exceptions import UploadTooLarge
@@ -188,7 +188,7 @@ async def narrate(
 
 
 @router.post(
-    "/retry",
+    "/videos/{video_id}/retry",
     status_code=status.HTTP_202_ACCEPTED,
     summary="Retry narration steps",
     description="Re-run one or more pipeline steps for an existing video.",
@@ -213,26 +213,7 @@ async def narrate(
         ),
     },
 )
-async def retry(payload: RetryRequest, video: RetryOwnedVideoDep) -> RunResponse:
-    try:
-        run = await asyncify(narration_service.create_retry_run)(
-            video_id=video.id,
-            steps=payload.steps,
-            model=payload.model,
-            voice=payload.voice,
-            max_atempo=payload.max_atempo,
-        )
-    except VideoNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Video not found",
-        ) from exc
-    except RunInProgress as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="A run is already queued or running for this video",
-        ) from exc
-
+async def retry(run: RetryRunDep) -> RunResponse:
     await asyncify(narration_service.enqueue_run)(run.id)
     return RunResponse(
         run_id=run.id,
@@ -309,20 +290,7 @@ async def get_run_status(run: OwnedRunDep) -> RunStatusResponse:
         ),
     },
 )
-async def download_video(video: OwnedVideoDep):
-    try:
-        run = await asyncify(narration_service.latest_downloadable_run)(video.id)
-    except VideoNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Video not found",
-        ) from exc
-    except OutputNotReady as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No narrated output is ready yet",
-        ) from exc
-
+async def download_video(video: OwnedVideoDep, run: DownloadableRunDep):
     key = key_utils.final_key(video.id, run.id)
     filename = f"{Path(video.original_filename).stem}-narrated.mp4"
 

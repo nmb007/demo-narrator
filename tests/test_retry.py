@@ -1,4 +1,4 @@
-"""API integration tests for POST /v1/retry."""
+"""API integration tests for POST /v1/videos/{video_id}/retry."""
 
 from __future__ import annotations
 
@@ -19,10 +19,9 @@ async def test_retry_202(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -
     narration_service.mark_run_succeeded(UUID(created["run_id"]))
 
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{created['video_id']}/retry",
         headers=headers,
         json={
-            "video_id": created["video_id"],
             "steps": ["voice", "mux"],
             "voice": "en-US-JennyNeural",
         },
@@ -45,9 +44,9 @@ async def test_retry_202_defaults_to_all_steps(
     narration_service.mark_run_succeeded(UUID(created["run_id"]))
 
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{created['video_id']}/retry",
         headers=headers,
-        json={"video_id": created["video_id"]},
+        json={},
     )
     assert response.status_code == 202
     assert response.json()["steps"] == [s.value for s in NarrationStep]
@@ -55,7 +54,7 @@ async def test_retry_202_defaults_to_all_steps(
 
 @pytest.mark.asyncio
 async def test_retry_401_without_token(client: AsyncClient) -> None:
-    response = await client.post("/v1/retry", json={"video_id": str(uuid4())})
+    response = await client.post(f"/v1/videos/{uuid4()}/retry", json={})
     assert response.status_code == 401
 
 
@@ -63,9 +62,9 @@ async def test_retry_401_without_token(client: AsyncClient) -> None:
 async def test_retry_404_missing_video(client: AsyncClient) -> None:
     headers = await auth_headers(client, email="retry-404@example.com")
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{uuid4()}/retry",
         headers=headers,
-        json={"video_id": str(uuid4()), "steps": ["mux"]},
+        json={"steps": ["mux"]},
     )
     assert response.status_code == 404
 
@@ -81,9 +80,9 @@ async def test_retry_403_not_owner(
 
     other = await auth_headers(client, email="retry-other@example.com")
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{created['video_id']}/retry",
         headers=other,
-        json={"video_id": created["video_id"]},
+        json={},
     )
     assert response.status_code == 403
 
@@ -97,19 +96,24 @@ async def test_retry_409_run_in_progress(
     created = await narrate_ok(client, headers, monkeypatch)
     # Original narrate left a queued run; retry must conflict.
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{created['video_id']}/retry",
         headers=headers,
-        json={"video_id": created["video_id"]},
+        json={},
     )
     assert response.status_code == 409
 
 
 @pytest.mark.asyncio
-async def test_retry_422_invalid_body(client: AsyncClient) -> None:
+async def test_retry_422_invalid_body(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     headers = await auth_headers(client, email="retry-422@example.com")
+    created = await narrate_ok(client, headers, monkeypatch)
+    narration_service.mark_run_succeeded(UUID(created["run_id"]))
     response = await client.post(
-        "/v1/retry",
+        f"/v1/videos/{created['video_id']}/retry",
         headers=headers,
-        json={"video_id": "not-a-uuid"},
+        json={"max_atempo": -1},
     )
     assert response.status_code == 422
