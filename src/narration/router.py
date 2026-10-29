@@ -213,7 +213,7 @@ async def narrate(
         ),
     },
 )
-async def retry(run: RetryRunDep) -> RunResponse:
+async def retry(video_id: UUID, run: RetryRunDep) -> RunResponse:
     await asyncify(narration_service.enqueue_run)(run.id)
     return RunResponse(
         run_id=run.id,
@@ -243,7 +243,7 @@ async def retry(run: RetryRunDep) -> RunResponse:
         ),
     },
 )
-async def get_run_status(run: OwnedRunDep) -> RunStatusResponse:
+async def get_run_status(run_id: UUID, run: OwnedRunDep) -> RunStatusResponse:
     return RunStatusResponse(
         run_id=run.id,
         video_id=run.video_id,
@@ -290,7 +290,7 @@ async def get_run_status(run: OwnedRunDep) -> RunStatusResponse:
         ),
     },
 )
-async def download_video(video: OwnedVideoDep, run: DownloadableRunDep):
+async def download_video(video_id: UUID, video: OwnedVideoDep, run: DownloadableRunDep):
     key = key_utils.final_key(video.id, run.id)
     filename = f"{Path(video.original_filename).stem}-narrated.mp4"
 
