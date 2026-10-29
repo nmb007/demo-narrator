@@ -33,7 +33,7 @@ def merge_segments(
             )
         current_text_parts = []
 
-    for index, segment in enumerate(segments):
+    for segment in segments:
         start = float(segment["start"])
         end = float(segment["end"])
         text = str(segment.get("text", "")).strip()

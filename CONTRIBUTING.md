@@ -17,11 +17,9 @@ Please keep pull requests focused: one issue or feature per PR.
 git clone https://github.com/<your-username>/demo-narrator.git
 cd demo-narrator
 cp .env.example .env
-# Add GROQ_API_KEY to .env
-docker compose build
-```
 
-Do not commit `.env`, API keys, source videos, or generated artifacts (`audio.wav`, `clips/`, `narration.wav`, `final.mp4`).
+docker compose up --build
+```
 
 ## Issues
 
@@ -29,7 +27,6 @@ Bug reports and feature ideas are welcome via [GitHub Issues](https://github.com
 
 When reporting a bug, include:
 
-- The command you ran
-- The relevant part of the output
+- The API request you made
+- The relevant response or worker log output
 - OS and Docker version if it looks environment-related
-- Whether `script.json` / `sync-report.json` show anything useful (omit private demo content)

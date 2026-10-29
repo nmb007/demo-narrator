@@ -1,0 +1,79 @@
+[project]
+name = "demo-narrator"
+version = "0.1.0"
+description = "Turn screen recordings into polished narrated demo videos"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi[standard]",
+    "sqlmodel",
+    "sqlalchemy[asyncio]",
+    "greenlet",
+    "psycopg[binary]",
+    "alembic",
+    "pydantic-settings",
+    "pyjwt",
+    "pwdlib[argon2]",
+    "celery[redis]",
+    "asyncer",
+    "obstore",
+    "faster-whisper",
+    # faster-whisper 1.2.1 still passes metadata_errors= to av.open(); removed in PyAV 19.
+    "av>=11,<19",
+    "openai",
+    "edge-tts",
+    "pydub",
+    "audioop-lts",
+    "email-validator",
+]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "httpx",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.fastapi]
+entrypoint = "src.main:app"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "FAST"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+omit = [
+    "src/narration/pipeline/*",
+    "src/worker.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+
+[tool.uv]
+package = true

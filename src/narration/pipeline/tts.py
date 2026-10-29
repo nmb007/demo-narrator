@@ -4,18 +4,15 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
-from pathlib import Path
 
 import aiohttp
 import edge_tts
 from edge_tts.exceptions import NoAudioReceived, UnexpectedResponse, UnknownResponse, WebSocketError
 
-from demo_mgr.align import align_narration
-from demo_mgr.paths import DemoPaths, demo_paths, resolve_demo_dir
+from src.narration.config import narration_settings
+from src.narration.pipeline.align import align_narration
+from src.narration.pipeline.paths import WorkPaths
 
-# Microsoft drops a burst of parallel TTS sockets and sometimes closes one
-# socket without audio. Speak one chunk at a time and retry those drops.
 _MAX_ATTEMPTS = 4
 _RETRY_BASE_SECONDS = 1.5
 _GAP_SECONDS = 0.5
@@ -31,12 +28,12 @@ _RETRYABLE = (
 )
 
 
-def _remove_empty_clip(output_path: Path) -> None:
+def _remove_empty_clip(output_path) -> None:
     if output_path.exists() and output_path.stat().st_size == 0:
         output_path.unlink()
 
 
-async def _synthesize_clip(text: str, voice: str, output_path: Path) -> None:
+async def _synthesize_clip(text: str, voice: str, output_path) -> None:
     last_error: Exception | None = None
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
@@ -61,7 +58,7 @@ async def _synthesize_clip(text: str, voice: str, output_path: Path) -> None:
     ) from last_error
 
 
-async def _synthesize_all(chunks: list[dict], voice: str, clips_dir: Path) -> None:
+async def _synthesize_all(chunks: list[dict], voice: str, clips_dir) -> None:
     total = len(chunks)
     for index, chunk in enumerate(chunks, start=1):
         clip_path = clips_dir / f"{chunk['id']}.mp3"
@@ -73,22 +70,19 @@ async def _synthesize_all(chunks: list[dict], voice: str, clips_dir: Path) -> No
 
 
 def generate_voice(
-    demo_dir_path: str | Path,
+    paths: WorkPaths,
     *,
     voice: str | None = None,
     max_atempo: float = 1.20,
     force: bool = False,
-) -> DemoPaths:
-    demo_dir = resolve_demo_dir(demo_dir_path)
-    paths = demo_paths(demo_dir)
-
+) -> WorkPaths:
     if not paths.script.exists():
         raise FileNotFoundError(f"Missing script.json. Run rewrite first: {paths.script}")
 
-    selected_voice = voice or os.getenv("DEFAULT_VOICE", "en-US-AndrewNeural")
+    selected_voice = voice or narration_settings.DEFAULT_VOICE
 
     if paths.narration.exists() and paths.sync_report.exists() and not force:
-        print(f"Skipping voice (outputs exist). Use --force to rerun: {paths.demo_dir}")
+        print(f"Skipping voice (outputs exist): {paths.work_dir}")
         return paths
 
     script = json.loads(paths.script.read_text(encoding="utf-8"))
@@ -98,9 +92,7 @@ def generate_voice(
 
     missing = [chunk["id"] for chunk in chunks if not str(chunk.get("rewritten", "")).strip()]
     if missing:
-        raise ValueError(
-            f"Chunks missing rewritten text: {', '.join(missing)}. Run rewrite first or edit script.json."
-        )
+        raise ValueError(f"Chunks missing rewritten text: {', '.join(missing)}. Run rewrite first.")
 
     paths.clips_dir.mkdir(parents=True, exist_ok=True)
     print(f"Generating TTS for {len(chunks)} chunks with voice '{selected_voice}'...")
@@ -114,7 +106,6 @@ def generate_voice(
     paths.sync_report.write_text(json.dumps(report, indent=2), encoding="utf-8")
     _print_sync_table(report)
     print(f"Wrote narration: {paths.narration}")
-    print(f"Wrote sync report: {paths.sync_report}")
     return paths
 
 

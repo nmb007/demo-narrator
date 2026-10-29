@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 import json
-import os
-from pathlib import Path
 
 from openai import OpenAI
 
-from demo_mgr.paths import DemoPaths, demo_paths, resolve_demo_dir
+from src.config import settings
+from src.narration.pipeline.paths import WorkPaths
 
-REWRITE_SYSTEM_PROMPT = """You rewrite spoken demo transcripts into clear, professional English narration.
-Return JSON only with this exact shape:
-{"chunks": [{"id": "<id>", "rewritten": "<text>"}]}
-
-Rules:
-- Keep roughly the same spoken length (similar word count) so timing still works.
-- Do not add steps or features that were not in the original.
-- Use present tense and direct, confident demo voice.
-- Preserve technical terms and product names exactly when present.
-"""
+REWRITE_SYSTEM_PROMPT = (
+    "You rewrite spoken demo transcripts into clear, professional English narration.\n"
+    "Return JSON only with this exact shape:\n"
+    '{"chunks": [{"id": "<id>", "rewritten": "<text>"}]}\n'
+    "\n"
+    "Rules:\n"
+    "- Keep roughly the same spoken length (similar word count) so timing still works.\n"
+    "- Do not add steps or features that were not in the original.\n"
+    "- Use present tense and direct, confident demo voice.\n"
+    "- Preserve technical terms and product names exactly when present.\n"
+)
 
 
 def _build_user_prompt(chunks: list[dict]) -> str:
@@ -57,14 +57,11 @@ def _parse_rewrite_response(raw: str, chunks: list[dict]) -> list[dict]:
     return updated
 
 
-def rewrite_demo(
-    demo_dir_path: str | Path,
+def rewrite_script(
+    paths: WorkPaths,
     *,
     force: bool = False,
-) -> DemoPaths:
-    demo_dir = resolve_demo_dir(demo_dir_path)
-    paths = demo_paths(demo_dir)
-
+) -> WorkPaths:
     if not paths.script.exists():
         raise FileNotFoundError(f"Missing script.json. Run transcribe first: {paths.script}")
 
@@ -75,14 +72,14 @@ def rewrite_demo(
 
     already_rewritten = all(chunk.get("rewritten") for chunk in chunks)
     if already_rewritten and not force:
-        print(f"Skipping rewrite (script already has rewritten text). Use --force to rerun: {paths.demo_dir}")
+        print(f"Skipping rewrite (script already has rewritten text): {paths.work_dir}")
         return paths
 
-    api_key = os.getenv("GROQ_API_KEY", "").strip()
+    api_key = settings.GROQ_API_KEY.strip()
     if not api_key:
-        raise EnvironmentError("GROQ_API_KEY is not set. Copy .env.example to .env and add your key.")
+        raise OSError("GROQ_API_KEY is not set.")
 
-    model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    model = settings.GROQ_MODEL
     client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
     user_prompt = _build_user_prompt(chunks)
@@ -110,7 +107,7 @@ def rewrite_demo(
             return paths
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
             last_error = exc
-            (paths.demo_dir / "rewrite-raw.txt").write_text(raw, encoding="utf-8")
+            (paths.work_dir / "rewrite-raw.txt").write_text(raw, encoding="utf-8")
             print(f"Rewrite parse failed (attempt {attempt + 1}/2): {exc}")
 
     raise RuntimeError(f"Groq rewrite failed after retries: {last_error}")
