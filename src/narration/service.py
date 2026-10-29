@@ -246,22 +246,36 @@ def mark_run_failed(run_id: UUID, error: str) -> NarrationRun:
 
 
 def prune_finals(video_id: UUID) -> None:
+    """Keep the newest KEEP_FINALS muxed success run dirs; delete all other run dirs.
+
+    Removes older mux successes, failed runs, and succeeded non-mux runs under
+    ``videos/{video_id}/runs/{run_id}/``. Active (queued/running) runs are left alone.
+    """
     keep = narration_settings.KEEP_FINALS
     with get_sync_session() as session:
         runs = session.exec(
             select(NarrationRun)
-            .where(
-                NarrationRun.video_id == video_id,
-                NarrationRun.status == RunStatus.SUCCEEDED,
-            )
-            .order_by(desc(NarrationRun.finished_at))
+            .where(NarrationRun.video_id == video_id)
+            .order_by(desc(NarrationRun.finished_at), desc(NarrationRun.created_at))
         ).all()
-        mux_runs = [run for run in runs if NarrationStep.MUX.value in (run.steps or [])]
-        for run in mux_runs[keep:]:
+
+        mux_succeeded = [
+            run
+            for run in runs
+            if run.status == RunStatus.SUCCEEDED
+            and NarrationStep.MUX.value in (run.steps or [])
+        ]
+        keep_ids = {run.id for run in mux_succeeded[:keep]}
+
+        for run in runs:
+            if run.id in keep_ids:
+                continue
+            if run.status in (RunStatus.QUEUED, RunStatus.RUNNING):
+                continue
             try:
-                storage.delete(key_utils.final_key(video_id, run.id))
+                storage.delete_prefix(key_utils.run_prefix(video_id, run.id))
             except Exception:  # noqa: BLE001
-                logger.exception("Failed to prune final for run %s", run.id)
+                logger.exception("Failed to prune run directory for %s", run.id)
 
 
 def latest_downloadable_run(video_id: UUID) -> NarrationRun:
@@ -348,13 +362,16 @@ def run_steps(run_id: UUID) -> None:
             workspace.after_step(step)
 
         mark_run_succeeded(run_id)
-        if NarrationStep.MUX in steps:
-            prune_finals(video_id)
     except Exception as exc:
         mark_run_failed(run_id, str(exc))
         raise
     finally:
         workspace.close()
+        # Drop excess / failed / non-mux run dirs after every finished attempt.
+        try:
+            prune_finals(video_id)
+        except Exception:  # noqa: BLE001
+            logger.exception("prune_finals failed for video %s", video_id)
 
 
 def enqueue_run(run_id: UUID) -> None:

@@ -20,5 +20,9 @@ def work_key(video_id: UUID, name: str) -> str:
     return f"{base}/{name}"
 
 
+def run_prefix(video_id: UUID, run_id: UUID) -> str:
+    return f"{video_prefix(video_id)}/runs/{run_id}"
+
+
 def final_key(video_id: UUID, run_id: UUID) -> str:
-    return f"{video_prefix(video_id)}/runs/{run_id}/final.mp4"
+    return f"{run_prefix(video_id, run_id)}/final.mp4"
