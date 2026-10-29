@@ -4,6 +4,36 @@ Extra rules for FastAPI work. They supplement the official FastAPI skill. Where 
 
 Apply this file when writing or changing FastAPI application code.
 
+## After every change
+
+Run these before you treat a change as done. Do this for application code and for tests. Fix failures before you stop.
+
+```shell
+docker compose --profile test run --rm test uv run ruff format src tests
+docker compose --profile test run --rm test uv run ruff check --fix src tests
+docker compose --profile test run --rm test
+```
+
+Order: format, then lint with fixes, then the full suite. If `ruff check --fix` rewrites a file, run the suite after that rewrite.
+
+These two Ruff commands do different jobs. Run both; one does not replace the other.
+
+| Command | Role | What it changes |
+| ------- | ---- | --------------- |
+| `ruff format` | Formatter (Black-compatible layout) | Whitespace, indentation, line wrapping, quote style. It does not fix unused imports, wrong types, or logic issues. |
+| `ruff check --fix` | Linter with auto-fix | Issues from the enabled rule sets in `pyproject.toml` (e.g. unused imports, import order, some bug-prone patterns). `--fix` applies safe auto-fixes; remaining findings still need a manual edit. It does not reformat the whole file the way `format` does. |
+
+Always run format, lint, and tests with Docker Compose. Do not call `ruff` or `pytest` on the host. The test service uses the `test` image (`tests/` and the `dev` group, including Ruff). It does not start Postgres or Redis; tests use in-memory SQLite. `src` and `tests` are bind-mounted, so Ruff writes back to the host. `pytest` collects `tests/` (`testpaths` in `pyproject.toml`).
+
+While iterating, a single file or keyword is enough. Still go through Compose:
+
+```shell
+docker compose --profile test run --rm test uv run pytest tests/test_auth.py -q
+docker compose --profile test run --rm test uv run pytest -k signup
+```
+
+Finish with the full suite: `docker compose --profile test run --rm test`.
+
 ## Project Structure
 
 Organize by domain, not by file type. One package per bounded context.
@@ -328,12 +358,9 @@ Catch the specific exception class and raise `HTTPException` with a meaningful s
 
 ## Linting
 
-```shell
-ruff check --fix src
-ruff format src
-```
+Ruff replaces black + isort + autoflake + most of flake8. Config is in `pyproject.toml`: `src` and `tests`, line length 100, target Python 3.14.
 
-Add to a pre-commit hook or run in CI. Ruff replaces black + isort + autoflake + most of flake8.
+`ruff format` is layout only. `ruff check --fix` is lint rules (and auto-fixes where safe). See the table in **After every change**. Use those Compose commands; lint `tests` as well as `src`.
 
 ## Anti-patterns
 
@@ -366,5 +393,9 @@ Add to a pre-commit hook or run in CI. Ruff replaces black + isort + autoflake +
 | JWT decode                         | PyJWT (`import jwt`)                           |
 | HTTP test client                   | `httpx.AsyncClient` + `ASGITransport`          |
 | Swap dep in tests                  | `app.dependency_overrides[dep] = fake`         |
-| Lint + format                      | `ruff check --fix` + `ruff format`             |
+| Format                             | `docker compose --profile test run --rm test uv run ruff format src tests` |
+| Lint                               | `docker compose --profile test run --rm test uv run ruff check --fix src tests` |
+| Full test suite                    | `docker compose --profile test run --rm test` |
+| One test file                      | `docker compose --profile test run --rm test uv run pytest tests/test_auth.py -q` |
+| Tests by keyword                   | `docker compose --profile test run --rm test uv run pytest -k signup` |
 | Docs outside local/staging         | `openapi_url=None`                             |

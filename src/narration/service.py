@@ -262,8 +262,7 @@ def prune_finals(video_id: UUID) -> None:
         mux_succeeded = [
             run
             for run in runs
-            if run.status == RunStatus.SUCCEEDED
-            and NarrationStep.MUX.value in (run.steps or [])
+            if run.status == RunStatus.SUCCEEDED and NarrationStep.MUX.value in (run.steps or [])
         ]
         keep_ids = {run.id for run in mux_succeeded[:keep]}
 

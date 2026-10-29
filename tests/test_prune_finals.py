@@ -7,7 +7,6 @@ from uuid import UUID, uuid4
 
 import pytest
 from sqlmodel import select
-
 from src.auth import service as auth_service
 from src.narration import service as narration_service
 from src.narration import utils as key_utils
@@ -121,4 +120,7 @@ def test_prune_keeps_newest_mux_successes_deletes_rest(
 
     # sanity: rows still in DB (prune is storage-only)
     with narration_service.get_sync_session() as session:
-        assert len(session.exec(select(NarrationRun).where(NarrationRun.video_id == video_id)).all()) == 6
+        assert (
+            len(session.exec(select(NarrationRun).where(NarrationRun.video_id == video_id)).all())
+            == 6
+        )
