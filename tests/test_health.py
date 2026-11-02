@@ -20,7 +20,7 @@ async def test_cors_preflight_allows_local_frontend(client: AsyncClient) -> None
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "content-type",
+            "Access-Control-Request-Headers": "content-type,x-request-id",
         },
     )
     assert response.status_code == 200
@@ -28,6 +28,7 @@ async def test_cors_preflight_allows_local_frontend(client: AsyncClient) -> None
     assert response.headers.get("access-control-allow-credentials") != "true"
     assert "POST" in response.headers["access-control-allow-methods"]
     assert "content-type" in response.headers["access-control-allow-headers"].lower()
+    assert "x-request-id" in response.headers["access-control-allow-headers"].lower()
 
     actual = await client.get("/health", headers={"Origin": "http://localhost:3000"})
     assert actual.status_code == 200

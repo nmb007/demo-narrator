@@ -44,7 +44,7 @@ Docs (local/staging): `http://localhost:8000/docs`
 
 All endpoints are under `/v1` and (except signup/login) require `Authorization: Bearer <token>`.
 
-Browsers on another origin need CORS. `CORS_ALLOW_ORIGINS` is a comma-separated list (default `http://localhost:3000`). Credentialed cookies are not used. Allowed methods are `GET` and `POST`. `Content-Disposition` is exposed so a frontend can read a download filename.
+Browsers on another origin need CORS. `CORS_ALLOW_ORIGINS` is a comma-separated list (default `http://localhost:3000`). Credentialed cookies are not used. Allowed methods are `GET` and `POST`. Allowed request headers include `Authorization`, `Content-Type`, and `X-Request-ID`. `Content-Disposition` is exposed so a frontend can read a download filename.
 
 ### 1. Sign up
 
