@@ -23,7 +23,7 @@ These two Ruff commands do different jobs. Run both; one does not replace the ot
 | `ruff format` | Formatter (Black-compatible layout) | Whitespace, indentation, line wrapping, quote style. It does not fix unused imports, wrong types, or logic issues. |
 | `ruff check --fix` | Linter with auto-fix | Issues from the enabled rule sets in `pyproject.toml` (e.g. unused imports, import order, some bug-prone patterns). `--fix` applies safe auto-fixes; remaining findings still need a manual edit. It does not reformat the whole file the way `format` does. |
 
-Always run format, lint, and tests with Docker Compose. Do not call `ruff` or `pytest` on the host. The test service uses the `test` image (`tests/` and the `dev` group, including Ruff). It does not start Postgres or Redis; tests use in-memory SQLite. `src` and `tests` are bind-mounted, so Ruff writes back to the host. `pytest` collects `tests/` (`testpaths` in `pyproject.toml`).
+Always run format, lint, and tests with Docker Compose. Do not call `uv`, `ruff`, or `pytest` on the host. The test service uses the `test` image (`tests/` and the `dev` group, including Ruff). It does not start Postgres or Redis; tests use in-memory SQLite. `src` and `tests` are bind-mounted, so Ruff writes back to the host. `pytest` collects `tests/` (`testpaths` in `pyproject.toml`).
 
 While iterating, a single file or keyword is enough. Still go through Compose:
 
@@ -33,6 +33,27 @@ docker compose --profile test run --rm test uv run pytest -k signup
 ```
 
 Finish with the full suite: `docker compose --profile test run --rm test`.
+
+## Dependencies
+
+Add, remove, or lock packages only inside the running Compose `api` container. Never run `uv` on the host, and never run `uv add` / `uv remove` / `uv lock` in the `test` or `worker` services.
+
+The `api` service bind-mounts `pyproject.toml` and `uv.lock`, so those edits land on the host.
+
+```shell
+docker compose exec api uv add <package>
+docker compose exec api uv remove <package>
+docker compose exec api uv lock
+```
+
+The `api` container must already be up (`docker compose up -d api` or the usual stack). `exec` runs in that container; do not use `docker compose run … test uv add`.
+
+Worker and test install from `uv.lock` at **image build** time. After `pyproject.toml` or `uv.lock` changes, rebuild those images, then continue with format → lint → suite:
+
+```shell
+docker compose build worker
+docker compose --profile test build test
+```
 
 ## Project Structure
 
@@ -398,4 +419,8 @@ Ruff replaces black + isort + autoflake + most of flake8. Config is in `pyprojec
 | Full test suite                    | `docker compose --profile test run --rm test` |
 | One test file                      | `docker compose --profile test run --rm test uv run pytest tests/test_auth.py -q` |
 | Tests by keyword                   | `docker compose --profile test run --rm test uv run pytest -k signup` |
+| Add a package                      | `docker compose exec api uv add <package>` then rebuild `worker` and `test` |
+| Remove a package                   | `docker compose exec api uv remove <package>` then rebuild `worker` and `test` |
+| Rebuild after lock change          | `docker compose build worker` and `docker compose --profile test build test` |
+| Never on the host                  | `uv`, `ruff`, `pytest` (`uv` deps → `api`; format/lint/tests → `test`) |
 | Docs outside local/staging         | `openapi_url=None`                             |

@@ -43,6 +43,8 @@ services:
       - ./migrations:/app/migrations
       - ./alembic.ini:/app/alembic.ini
       - ./storage:/app/storage
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
     depends_on:
       db:
         condition: service_healthy
