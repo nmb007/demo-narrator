@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination
 
 from src.auth.router import router as auth_router
 from src.config import cors_allow_origins, settings
@@ -28,6 +29,7 @@ api_v1 = APIRouter(prefix="/v1")
 api_v1.include_router(auth_router)
 api_v1.include_router(narration_router)
 app.include_router(api_v1)
+add_pagination(app)
 
 
 @app.get(

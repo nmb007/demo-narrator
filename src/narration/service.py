@@ -6,7 +6,10 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import desc
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import paginate
+from sqlalchemy import and_, desc, or_
+from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, select
 
 from src.database import get_sync_session
@@ -28,6 +31,7 @@ from src.narration.exceptions import (
     VideoNotOwned,
 )
 from src.narration.models import NarrationRun, Video
+from src.narration.schemas import VideoListItem, VideoRunSummary
 from src.storage import service as storage
 
 logger = logging.getLogger(__name__)
@@ -64,6 +68,66 @@ def get_owned_video(video_id: UUID, user_id: UUID) -> Video:
             raise VideoNotOwned()
         session.expunge(video)
         return video
+
+
+def _to_video_list_item(video: Video, run: NarrationRun | None) -> VideoListItem:
+    latest_run = None
+    if run is not None:
+        latest_run = VideoRunSummary(
+            run_id=run.id,
+            status=RunStatus(run.status),
+            current_step=NarrationStep(run.current_step) if run.current_step else None,
+            created_at=run.created_at,
+            started_at=run.started_at,
+            finished_at=run.finished_at,
+        )
+    return VideoListItem(
+        id=video.id,
+        original_filename=video.original_filename,
+        source_ext=video.source_ext,
+        created_at=video.created_at,
+        latest_run=latest_run,
+    )
+
+
+def list_videos_for_user(user_id: UUID) -> Page[VideoListItem]:
+    """Return one page of the caller's videos with each video's latest succeeded run."""
+    newer_run = aliased(NarrationRun)
+    statement = (
+        select(Video, NarrationRun)
+        .outerjoin(
+            NarrationRun,
+            and_(
+                NarrationRun.video_id == Video.id,
+                NarrationRun.status == RunStatus.SUCCEEDED,
+            ),
+        )
+        .outerjoin(
+            newer_run,
+            and_(
+                newer_run.video_id == Video.id,
+                newer_run.status == RunStatus.SUCCEEDED,
+                or_(
+                    newer_run.created_at > NarrationRun.created_at,
+                    and_(
+                        newer_run.created_at == NarrationRun.created_at,
+                        newer_run.id > NarrationRun.id,
+                    ),
+                ),
+            ),
+        )
+        .where(Video.user_id == user_id, newer_run.id.is_(None))
+        .order_by(desc(Video.created_at), desc(Video.id))
+    )
+
+    with get_sync_session() as session:
+        return paginate(
+            session,
+            statement,
+            subquery_count=True,
+            unwrap_mode="no-unwrap",
+            transformer=lambda rows: [_to_video_list_item(video, run) for video, run in rows],
+        )
 
 
 def get_run(run_id: UUID, user_id: UUID) -> NarrationRun:

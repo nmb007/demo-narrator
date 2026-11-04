@@ -705,6 +705,7 @@ dependencies = [
     { name = "edge-tts" },
     { name = "email-validator" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "fastapi-pagination" },
     { name = "faster-whisper" },
     { name = "greenlet" },
     { name = "obstore" },
@@ -737,6 +738,7 @@ requires-dist = [
     { name = "edge-tts" },
     { name = "email-validator" },
     { name = "fastapi", extras = ["standard"] },
+    { name = "fastapi-pagination", specifier = ">=0.16.2" },
     { name = "faster-whisper" },
     { name = "greenlet" },
     { name = "obstore" },
@@ -877,6 +879,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c0/8a/2857421c2218426e9f7635f9796e4e4bb41116b4b96d2fdf0cf8ed9ab5ae/fastapi_cloud_cli-0.26.0.tar.gz", hash = "sha256:5fd64c26228c8ead803461e8b58ae64ffd586e960d97ab1fc848efac2d9539be", size = 126180, upload-time = "2026-09-10T16:52:14.522Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/30/96/0e527b3aa93c0ade8b4edc959eb064df49f816469d4781312374b4ce1bab/fastapi_cloud_cli-0.26.0-py3-none-any.whl", hash = "sha256:94029f92f3dc4289b376e1213f0d6cc7c30d4f32de7e47b5effc6dc754ab9ce9", size = 108653, upload-time = "2026-09-10T16:52:13.493Z" },
+]
+
+[[package]]
+name = "fastapi-pagination"
+version = "0.16.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9c/a1/73165d7932f1f87bac9f5e12e65864cbce1bd86882ed37c7603888d31299/fastapi_pagination-0.16.2.tar.gz", hash = "sha256:f9b0bec39f2156e66b3ef73c35cc6eb7345faa86a7c3149d4f63b60b0e9e5e58", size = 662215, upload-time = "2026-11-03T23:22:37.135Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/01/609ad358f28bef0d1f42694e2e1894f1791c443fd8bacc426a518a10ef88/fastapi_pagination-0.16.2-py3-none-any.whl", hash = "sha256:6d154e37a1e9fefdd8c3730786863aa9502a90c08b6c59326ae3a5e07ae0a19d", size = 53227, upload-time = "2026-11-03T23:22:35.536Z" },
 ]
 
 [[package]]

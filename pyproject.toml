@@ -25,6 +25,7 @@ dependencies = [
     "pydub",
     "audioop-lts",
     "email-validator",
+    "fastapi-pagination>=0.16.2",
 ]
 
 [dependency-groups]

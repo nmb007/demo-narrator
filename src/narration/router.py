@@ -24,7 +24,12 @@ from src.narration.dependencies import (
 )
 from src.narration.exceptions import UnsupportedMediaType
 from src.narration.pipeline.ffmpeg_util import FFmpegError, probe_duration
-from src.narration.schemas import RunResponse, RunStatusResponse
+from src.narration.schemas import (
+    RunResponse,
+    RunStatusResponse,
+    VideoListItem,
+    VideoPage,
+)
 from src.schemas import NOT_AUTHENTICATED_RESPONSE, error_response, success_response
 from src.storage import service as storage
 from src.storage.exceptions import UploadTooLarge
@@ -47,6 +52,28 @@ _RUN_STATUS_EXAMPLE = {
     "created_at": "2026-01-15T12:00:00Z",
     "started_at": "2026-01-15T12:00:05Z",
     "finished_at": None,
+}
+_VIDEO_LIST_EXAMPLE = {
+    "items": [
+        {
+            "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "original_filename": "demo.mov",
+            "source_ext": "mov",
+            "created_at": "2026-01-15T12:00:00Z",
+            "latest_run": {
+                "run_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                "status": "succeeded",
+                "current_step": None,
+                "created_at": "2026-01-15T12:00:00Z",
+                "started_at": "2026-01-15T12:00:05Z",
+                "finished_at": "2026-01-15T12:01:00Z",
+            },
+        }
+    ],
+    "total": 1,
+    "page": 1,
+    "size": 20,
+    "pages": 1,
 }
 
 
@@ -255,6 +282,26 @@ async def get_run_status(run_id: UUID, run: OwnedRunDep) -> RunStatusResponse:
         started_at=run.started_at,
         finished_at=run.finished_at,
     )
+
+
+@router.get(
+    "/videos",
+    summary="List my videos",
+    description=(
+        "Return a page of the authenticated user's videos, newest first. "
+        "Each item includes the latest succeeded narration run when one exists."
+    ),
+    responses={
+        status.HTTP_200_OK: success_response(
+            model=VideoPage[VideoListItem],
+            description="Paginated videos",
+            example=_VIDEO_LIST_EXAMPLE,
+        ),
+        **NOT_AUTHENTICATED_RESPONSE,
+    },
+)
+async def list_videos(current_user: CurrentUserDep) -> VideoPage[VideoListItem]:
+    return await asyncify(narration_service.list_videos_for_user)(current_user.id)
 
 
 @router.get(
